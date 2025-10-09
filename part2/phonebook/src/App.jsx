@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
+import getAll from './backend'
 
 const App = () => {
 
@@ -9,7 +10,8 @@ const App = () => {
   const [filter, setFilter] = useState('')
 
   useEffect(()=> {
-    axios.get('http://localhost:3001/persons')
+    // axios.get('http://localhost:3001/persons')
+      getAll()
       .then(res => {
         console.log(res.data)
         setPersons(res.data)
@@ -22,12 +24,23 @@ const App = () => {
     console.log(newName)
 
     const newPerson = {
-      name: newName
+      name: newName,
+      number: newNumber,
+      id: (persons.length + 1).toString()
     }
 
-    persons.some(person => person.name === newName) ? alert("name already exists") : setPersons(persons.concat(newPerson))
+    persons.some(person => person.name === newName) ? alert("name already exists") 
+    : axios.post('http://localhost:3001/persons', newPerson)
+    .then(response => {
+      console.log('Added person:', response.data);
+    })
+    .catch(error => {
+      console.error('Error adding person:', error);
+    });
     
+    setPersons(persons.concat(newPerson))
     setNewName('')
+    setNewNumber('')
   }
 
   const handleValue = (e) => {
@@ -42,6 +55,22 @@ const App = () => {
 
   const handleFilter = (e) => {
     setFilter(e.target.value)
+  }
+
+  const deleteNumber = (id) => {
+    const foundId = persons.find(person => person.id === id )
+    console.log(foundId)
+    axios.delete(`http://localhost:3001/persons/${foundId.id}`)
+    .then(response => {
+      console.log('Deleted successfully');
+    })
+    .catch(error => {
+      console.error('Error deleting person:', error);
+    });
+
+    setPersons(prev => prev.filter(p => p.id !== id))
+
+
   }
 
   const filteredPeople = persons.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()))
@@ -65,7 +94,8 @@ const App = () => {
       </form>
       <h2>Numbers</h2>
       {filteredPeople.map(p => (
-        <li key={p.id ?? p.name}>{p.name} {p.number}</li>
+        <li key={p.id ?? p.name}>{p.name} {p.number} <button onClick={()=> deleteNumber(p.id)}>delete</button></li>
+        
       ))}
     </div>
   )
